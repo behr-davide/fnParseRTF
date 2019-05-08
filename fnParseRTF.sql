@@ -84,12 +84,12 @@ BEGIN
 
             SET @rtf = STUFF(@rtf, @Pos1, @Pos2 - @Pos1 + 1, '');
         END
-
-    SET @rtf = REPLACE(@rtf, '\pard', '');
-    SET @rtf = REPLACE(@rtf, '\par', '');
+    -- replace par tags with ' ' instead of ''
+    SET @rtf = REPLACE(@rtf, '\pard', ' ');
+    SET @rtf = REPLACE(@rtf, '\par', ' ');
     SET @rtf = STUFF(@rtf, 1, CHARINDEX(' ', @rtf), '');
 
-    WHILE (Right(@rtf, 1) IN (' ', CHAR(13), CHAR(10), '}'))
+	WHILE (Right(@rtf, 1) IN ('}')) -- removed checking for CHAR(10), CHAR(13), ' '
       BEGIN
         SELECT @rtf = SUBSTRING(@rtf, 1, (LEN(@rtf + 'x') - 2));
         IF LEN(@rtf) = 0 BREAK
@@ -132,7 +132,7 @@ CHAR(CONVERT(int, CONVERT (binary(1), @hex,1))));
         END
 
     IF RIGHT(@rtf, 1) = ' '
-        SET @rtf = SUBSTRING(@rtf, 1, LEN(@rtf) -1);
+        SET @rtf = SUBSTRING(@rtf, 1, LEN(@rtf) - 0); -- LEN(@rtf) - 1 was dropping the last char
 
     RETURN @rtf;
 END
