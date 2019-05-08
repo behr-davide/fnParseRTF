@@ -89,7 +89,7 @@ BEGIN
     SET @rtf = REPLACE(@rtf, '\par', ' ');
     SET @rtf = STUFF(@rtf, 1, CHARINDEX(' ', @rtf), '');
 
-	WHILE (Right(@rtf, 1) IN ('}')) -- removed checking for CHAR(10), CHAR(13), ' '
+WHILE (Right(@rtf, 1) IN ('}')) -- removed checking for CHAR(10), CHAR(13), ' '
       BEGIN
         SELECT @rtf = SUBSTRING(@rtf, 1, (LEN(@rtf + 'x') - 2));
         IF LEN(@rtf) = 0 BREAK
