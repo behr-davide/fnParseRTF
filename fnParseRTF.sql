@@ -84,17 +84,30 @@ BEGIN
 
             SET @rtf = STUFF(@rtf, @Pos1, @Pos2 - @Pos1 + 1, '');
         END
-    -- replace par tags with ' ' instead of ''
+
     SET @rtf = REPLACE(@rtf, '\pard', ' ');
     SET @rtf = REPLACE(@rtf, '\par', ' ');
     SET @rtf = STUFF(@rtf, 1, CHARINDEX(' ', @rtf), '');
 
-WHILE (Right(@rtf, 1) IN ('}')) -- removed checking for CHAR(10), CHAR(13), ' '
+-- replace par tags with ' ' instead of ''
+WHILE (Right(@rtf, 1) IN ('}'))
       BEGIN
         SELECT @rtf = SUBSTRING(@rtf, 1, (LEN(@rtf + 'x') - 2));
         IF LEN(@rtf) = 0 BREAK
       END
     
+		-- \pict processing code
+	WHILE @Pos1 > 0 
+		BEGIN
+			IF @Pos1 > 0 
+				BEGIN
+					SET @Pos1 = PATINDEX('%{\pict%', @rtf); -- find the position of a picture in the rtf data
+					SET @Pos2 = CHARINDEX('}', @rtf, @Pos1); -- find the closing brace for the \pict data
+					SET @rtf = STUFF(@rtf, @Pos1, (@Pos2 - @Pos1) + 1, ''); 
+					SET @Pos1 = PATINDEX('%{\pict%', @rtf); -- reset the index of the opening brace for additional \pict data 
+				END
+		END
+	
     SET @Pos1 = CHARINDEX('\''', @rtf);
 
     WHILE @Pos1 > 0
@@ -103,7 +116,7 @@ WHILE (Right(@rtf, 1) IN ('}')) -- removed checking for CHAR(10), CHAR(13), ' '
                 BEGIN
                     SET @hex = '0x' + SUBSTRING(@rtf, @Pos1 + 2, 2);
                     SET @rtf = REPLACE(@rtf, SUBSTRING(@rtf, @Pos1, 4), 
-CHAR(CONVERT(int, CONVERT (binary(1), @hex,1))));
+					CHAR(CONVERT(int, CONVERT (binary(1), @hex,1))));
                     SET @Pos1 = CHARINDEX('\''', @rtf);
                 END
         END
@@ -130,9 +143,6 @@ CHAR(CONVERT(int, CONVERT (binary(1), @hex,1))));
                     SET @Pos1 = PATINDEX('%\%[0123456789][\ ]%', @rtf);
                 END
         END
-
-    IF RIGHT(@rtf, 1) = ' '
-        SET @rtf = SUBSTRING(@rtf, 1, LEN(@rtf) - 0); -- LEN(@rtf) - 1 was dropping the last char
 
     RETURN @rtf;
 END
