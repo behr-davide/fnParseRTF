@@ -143,12 +143,12 @@ BEGIN
 	END
 
 	-- \pict processing code
+	SET @Pos1 = PATINDEX('%{\pict%', @rtf);
+	-- find the position of a picture in the rtf data
 	WHILE @Pos1 > 0
 	BEGIN
 		IF @Pos1 > 0
 		BEGIN
-			SET @Pos1 = PATINDEX('%{\pict%', @rtf);
-			-- find the position of a picture in the rtf data
 			SET @Pos2 = CHARINDEX('}', @rtf, @Pos1);
 			-- find the closing brace for the \pict data
 			SET @rtf = STUFF(@rtf, @Pos1, (@Pos2 - @Pos1) + 1, '');
