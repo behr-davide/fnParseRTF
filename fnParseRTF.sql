@@ -22,8 +22,8 @@ BEGIN
 	DECLARE @Pos2 INT;
 	DECLARE @hex VARCHAR(316);
 	DECLARE @Stage TABLE (
-		[Char] CHAR(1),
-		[Pos] INT
+		[Char] CHAR(1)
+		,[Pos] INT
 		);
 
 	WITH Tally (Number)
@@ -35,80 +35,103 @@ BEGIN
 						)
 				)
 		FROM (
-			VALUES (0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0)
+			VALUES (0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
 			) a(Number)
 		CROSS JOIN (
-			VALUES (0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0)
+			VALUES (0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
 			) b(Number)
 		CROSS JOIN (
-			VALUES (0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0)
+			VALUES (0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
 			) c(Number)
 		CROSS JOIN (
-			VALUES (0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0),
-				(0)
+			VALUES (0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
+				,(0)
 			) d(Number)
 		)
 	INSERT @Stage (
-		[Char],
-		[Pos]
+		[Char]
+		,[Pos]
 		)
 	/*
 	ORIGINAL METHOD FOR STAGING CHARS USES STATIC NUMBERING IN MASTER..SPT_VALUES
 	THIS MAXES OUT AT 2047 CHARACTERS, SO I UPDATED WITH A 10K ROW TALLY TABLE.
 	ADDITIONAL CROSS JOINS CAN BE ADDED DEPENDING ON THE MAX LENGTH OF THE RTF DATA
 	*/
-	SELECT SUBSTRING(@rtf, Number, 1),
-		Number
+	SELECT SUBSTRING(@rtf, Number, 1)
+		,Number
 	FROM Tally
-	WHERE SUBSTRING(@rtf, Number, 1) IN ('{', '}')
+	WHERE SUBSTRING(@rtf, Number, 1) IN (
+			'{'
+			,'}'
+			)
 
-	SELECT @Pos1 = MIN([Pos]),
-		@Pos2 = MAX([Pos])
+	SELECT @Pos1 = MIN([Pos])
+		,@Pos2 = MAX([Pos])
 	FROM @Stage;
 
 	DELETE
 	FROM @Stage
-	WHERE ([Pos] IN (@Pos1, @Pos2));
+	WHERE (
+			[Pos] IN (
+				@Pos1
+				,@Pos2
+				)
+			);
+
+	/* 
+	check if the doc is already plaintext. if so, return the body. 
+	if not, jump to the branch containing parsing code
+	*/
+	BEGIN
+		SET @Pos1 = PATINDEX('{\rtf1%', @rtf)
+
+		IF @Pos1 > 0
+			GOTO Conversion_Branch;
+		ELSE
+			RETURN @rtf;
+	END
+
+	Conversion_Branch:
 
 	WHILE (1 = 1)
 	BEGIN
-		SELECT TOP 1 @Pos1 = s1.[Pos],
-			@Pos2 = s2.[Pos]
+		SELECT TOP 1 @Pos1 = s1.[Pos]
+			,@Pos2 = s2.[Pos]
 		FROM @Stage s1
 		INNER JOIN @Stage s2 ON s2.[Pos] > s1.[Pos]
 		WHERE (s1.[Char] = '{')
@@ -120,7 +143,12 @@ BEGIN
 
 		DELETE
 		FROM @Stage
-		WHERE ([Pos] IN (@Pos1, @Pos2));
+		WHERE (
+				[Pos] IN (
+					@Pos1
+					,@Pos2
+					)
+				);
 
 		UPDATE @Stage
 		SET [Pos] = [Pos] - @Pos2 + @Pos1 - 1
@@ -133,7 +161,7 @@ BEGIN
 	SET @rtf = REPLACE(@rtf, '\par', ' ');
 	SET @rtf = STUFF(@rtf, 1, CHARINDEX(' ', @rtf), '');
 
-	-- replace par tags with ' ' instead of ''
+	--WHILE (Right(@rtf, 1) IN (' ', CHAR(13), CHAR(10), '}'))
 	WHILE (Right(@rtf, 1) IN ('}'))
 	BEGIN
 		SELECT @rtf = SUBSTRING(@rtf, 1, (LEN(@rtf + 'x') - 2));
@@ -143,17 +171,15 @@ BEGIN
 	END
 
 	-- \pict processing code
-	SET @Pos1 = PATINDEX('%{\pict%', @rtf);
-	-- find the position of a picture in the rtf data
+	SET @Pos1 = PATINDEX('%{\pict%', @rtf);-- find the position of a picture in the rtf data
+
 	WHILE @Pos1 > 0
 	BEGIN
 		IF @Pos1 > 0
 		BEGIN
-			SET @Pos2 = CHARINDEX('}', @rtf, @Pos1);
-			-- find the closing brace for the \pict data
+			SET @Pos2 = CHARINDEX('}', @rtf, @Pos1);-- find the closing brace for the \pict data
 			SET @rtf = STUFF(@rtf, @Pos1, (@Pos2 - @Pos1) + 1, '');
-			SET @Pos1 = PATINDEX('%{\pict%', @rtf);
-				-- reset the index of the opening brace for additional \pict data 
+			SET @Pos1 = PATINDEX('%{\pict%', @rtf);-- reset the index of the opening brace for additional \pict data 
 		END
 	END
 
@@ -194,5 +220,3 @@ BEGIN
 	RETURN @rtf;
 END
 GO
-
-
