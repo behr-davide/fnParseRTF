@@ -127,6 +127,18 @@ BEGIN
 	END
 
 	Conversion_Branch:
+	-- \pict processing code
+	SET @Pos1 = PATINDEX('%{\pict%', @rtf);-- find the position of a picture in the rtf data
+
+	WHILE @Pos1 > 0
+	BEGIN
+		IF @Pos1 > 0
+		BEGIN
+			SET @Pos2 = CHARINDEX('}', @rtf, @Pos1);-- find the closing brace for the \pict data
+			SET @rtf = STUFF(@rtf, @Pos1, (@Pos2 - @Pos1) + 1, '');
+			SET @Pos1 = PATINDEX('%{\pict%', @rtf);-- reset the index of the opening brace for additional \pict data 
+		END
+	END
 
 	WHILE (1 = 1)
 	BEGIN
@@ -168,19 +180,6 @@ BEGIN
 
 		IF LEN(@rtf) = 0
 			BREAK
-	END
-
-	-- \pict processing code
-	SET @Pos1 = PATINDEX('%{\pict%', @rtf);-- find the position of a picture in the rtf data
-
-	WHILE @Pos1 > 0
-	BEGIN
-		IF @Pos1 > 0
-		BEGIN
-			SET @Pos2 = CHARINDEX('}', @rtf, @Pos1);-- find the closing brace for the \pict data
-			SET @rtf = STUFF(@rtf, @Pos1, (@Pos2 - @Pos1) + 1, '');
-			SET @Pos1 = PATINDEX('%{\pict%', @rtf);-- reset the index of the opening brace for additional \pict data 
-		END
 	END
 
 	SET @Pos1 = CHARINDEX('\''', @rtf);
