@@ -172,6 +172,7 @@ BEGIN
 	SET @rtf = REPLACE(@rtf, '\pard', ' ');
 	SET @rtf = REPLACE(@rtf, '\par', ' ');
 	SET @rtf = STUFF(@rtf, 1, CHARINDEX(' ', @rtf), '');
+	SET @rtf = REPLACE(@rtf, REPLICATE('f',20), '')
 
 	--WHILE (Right(@rtf, 1) IN (' ', CHAR(13), CHAR(10), '}'))
 	WHILE (Right(@rtf, 1) IN ('}'))
